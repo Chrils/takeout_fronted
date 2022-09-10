@@ -33,17 +33,14 @@
             <el-form-item label="店铺名称" prop="name">
               <el-input v-model="form.name" style="width: 300px;" placeholder="请输入店铺名称" clearable></el-input>
             </el-form-item>
-            <el-form-item label="店铺分类" prop="shopType">
-              <el-cascader
-                  v-model="form.shopType"
-                  :options="cateList"
-                  :props="cascaderProps"
-                  placeholder="请选择分类">
-              </el-cascader>
+            <el-form-item label="店铺分类" prop="applyShopType">
+              <el-select v-model="form.applyShopType" placeholder="请选择">
+                <el-option v-for="item in cateList" :label="item.name" :key="item.name" :value="item.id"></el-option>
+              </el-select>
             </el-form-item>
           </el-tab-pane>
           <el-tab-pane label="门店地址" name="1">
-            <AMap style="height: 400px"></AMap>
+            <AMap :map-obj="mapObj" style="height: 400px"></AMap>
           </el-tab-pane>
           <el-tab-pane label="身份认证" name="2">
             <el-form-item label="身份证（正面）">
@@ -59,6 +56,8 @@
                   :on-success="handleSuccess"
                   :on-error="handleError"
                   :http-request="upload"
+                  :limit="1"
+                  :on-exceed="overLimit"
                   :file-list="fileList">
                 <i class="el-icon-plus"></i>
               </el-upload>
@@ -80,12 +79,14 @@
                   action=""
                   :headers="headers"
                   :on-preview="handlePreview"
-                  :on-remove="handleRemove"
+                  :on-remove="handleRemoveLicense"
                   :before-upload="beforeUpload"
                   :on-success="handleSuccess"
                   :on-error="handleError"
-                  :http-request="upload"
-                  :file-list="fileList">
+                  :http-request="uploadLicense"
+                  :limit="1"
+                  :on-exceed="overLimit"
+                  :file-list="licenseFileList">
                 <i class="el-icon-plus"></i>
               </el-upload>
               <el-button type="primary" class="btnAdd" @click="handleSubmit">提交</el-button>
@@ -94,9 +95,12 @@
                   title="预览" append-to-body
                   :visible.sync="dialogImageVisible" width="30%">
                 <img width="100%" :src="dialogImageUrl" alt=""
-                     crossOrigin="use-credentials">
+                     crossOrigin="anonymous">
               </el-dialog>
             </el-form-item>
+          </el-tab-pane>
+          <el-tab-pane label="已完成" name="4">
+            <h2>申请成功啦！请耐心等待审批结果</h2>
           </el-tab-pane>
         </el-tabs>
       </el-form>
@@ -121,10 +125,17 @@ export default {
       },
       form:{
         name: '',
-        shopType: [],
+        applyShopType: "",
         img:"",
         idCard: "",
         license: "",
+        applyUserId: JSON.parse(localStorage.getItem('user')).userId,
+        detailAddress: "",
+        longitude: "",
+        latitude: "",
+        province: "",
+        city: "",
+        area: "",
       },
       mapDialogVisible: false,
       rules:{
@@ -132,7 +143,7 @@ export default {
           { required: true, message: '请输入店铺名称', trigger: 'blur' },
           { min: 2, max: 10, message: '长度在 2 到 10 个字符', trigger: 'blur' }
         ],
-        shopType: [
+        applyShopType: [
           { required: true, message: '请选择店铺分类', trigger: 'change' }
         ],
         idCard: [
@@ -145,14 +156,16 @@ export default {
       dialogImageUrl: "", // 图片预览url
       dialogImageVisible: false, // 图片预览对话框是否显示
       fileList: [], // 图片上传列表
+      licenseFileList: [], // 营业执照图片上传列表
       cateList: [], // 商品分类列表
-      // 级联选择器配置
-      cascaderProps: {
-        value: "id", //当前节点值
-        label: "name", //当前节点显示的文本
-        children: "children", //父子节点之间的关系
-        expandTrigger: "hover",  // 何时触发展开
-      },
+      mapObj:{
+        center: [],
+        address: "",
+        searchKey: "",
+        province: "",
+        city: "",
+        area: ""
+      }
     }
   },
   methods:{
@@ -160,16 +173,29 @@ export default {
       this.active = index
     },
     handlePreview(file){
+      console.log(file);
       this.dialogImageUrl = file.url;
       this.dialogImageVisible = true;
     },
-    handleRemove(file, fileList) {
+    async handleRemove(file, fileList,type) {
       console.log(file, fileList);
-      this.form.img.splice(index, 1);
       //删除fileList中的图片
-      this.fileList.splice(index, 1);
+      this.fileList.splice(0, 1);
       console.log("filelist", fileList);
+      const {data:res} = await this.$http.delete("/file/delete?file="+file.uid)
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg)
+        this.form.idCard = "";
     },
+    async handleRemoveLicense(file, fileList,type) {
+      console.log(file, fileList);
+      //删除fileList中的图片
+      this.fileList.splice(0, 1);
+      console.log("filelist", fileList);
+      const {data:res} = await this.$http.delete("/file/delete?file="+file.path)
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.form.license = "";
+    },
+
     handleSuccess(res, file, fileList) {
     },
     beforeUpload(file) {
@@ -187,6 +213,41 @@ export default {
       return (isJPG || isPNG || isGIF) && isLt2M;
     },
     async upload(param){
+      const formData = new FormData();
+      formData.append('file', param.file);
+      const {data:res} = await this.$http.post("/file/upload",formData,{
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      if(res.meta.status!=="200") return this.$message.error(res.meta.msg);
+      console.log(res);
+      this.fileList.push({
+        url: res.data.data,
+        uid: res.data.data
+      });
+      this.form.idCard = res.data.data
+      this.$notify({
+        title: "",
+        message: "上传成功",
+        type: "success"
+      });
+    },
+    async uploadLicense(param){
+      const formData = new FormData();
+      formData.append('file', param.file);
+      const {data:res} = await this.$http.post("/file/upload",formData,{
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      if(res.meta.status!=="200") return this.$message.error(res.meta.msg);
+      console.log(res);
+      this.licenseFileList.push({
+        url: res.data.data,
+        uid: res.data.data
+      });
+      this.form.license = res.data.data
       this.$notify({
         title: "",
         message: "上传成功",
@@ -197,8 +258,36 @@ export default {
       console.log(err, file, fileList);
     },
     handleSubmit(){
-
+      console.log(this.form);
+      console.log(this.mapObj)
+      this.form.longitude = this.mapObj.center[0];
+      this.form.latitude = this.mapObj.center[1];
+      this.form.province = this.mapObj.province;
+      this.form.city = this.mapObj.city;
+      this.form.area = this.mapObj.area;
+      this.form.detailAddress = this.mapObj.address;
+      this.$refs.form.validate(async valid => {
+        if (valid) {
+          const {data:res} = await this.$http.post("/consumer/admin/shop/register",this.form)
+          if(res.meta.status!=="200") return this.$message.error(res.meta.msg);
+          this.$message.success("申请成功");
+          this.active = "4";
+        } else {
+          return false;
+        }
+      });
+    },
+    async getCateList(){
+      const {data:res} = await this.$http.get("/consumer/client/shop-type/list/without-page")
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.cateList = res.data.data;
+    },
+    overLimit(){
+      this.$notify.warning("仅可上传一张图片")
     }
+  },
+  created() {
+    this.getCateList();
   }
 }
 </script>

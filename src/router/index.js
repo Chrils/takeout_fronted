@@ -21,7 +21,7 @@ const routes = [
       {path: '/client/index',component:()=>import('../views/user/index.vue')},
       {path: '/client/apply',component:()=>import('../views/user/apply.vue')},
       {path: '/shop/list',component:()=>import('../views/admin/shop/shopList.vue')},
-      {path: '/shop/detail',component:()=>import('../views/admin/shop/shopDetail.vue')},
+      {path: '/shop/detail/:shop_id',component:()=>import('../views/admin/shop/shopDetail.vue')},
       {path: '/shop/shopType',component:()=>import('../views/admin/shop/shopTypeList.vue')},
       {path: '/shop/shopReview',component:()=>import('../views/admin/shop/shopReview.vue')},
       {path: '/complaint/list',component:()=>import('../views/admin/complaint/complaintList.vue')},
@@ -29,17 +29,19 @@ const routes = [
       {path: '/merchant/order/list',component:()=>import('../views/merchant/order/order')},
       {path: '/merchant/order/detail/:order_no',component:()=>import('../views/merchant/order/detail')},
       {path: '/merchant/goods/list',component:()=>import('../views/merchant/goods/list')},
-      {path: '/merchant/goods/add',component:()=>import('../views/merchant/goods/addGoods')},
+      {path: '/merchant/goods/add/:goodsId',component:()=>import('../views/merchant/goods/addGoods')},
       {path: '/merchant/profile',component:()=>import('../views/merchant/profile/profile')},
       {path: '/merchant/profile/edit',component:()=>import('../views/merchant/profile/editProfile')},
       {path: '/merchant/discount',component:()=>import('../views/merchant/discount/discount')},
       {path: '/merchant/customers/follow',component:()=>import('../views/merchant/customers/follows')},
-      {path: '/merchant/customers/chat',component:()=>import('../views/merchant/customers/chat')},
+      {path: '/merchant/customers/chat/:userId',component:()=>import('../views/merchant/customers/chat')},
       {path: '/merchant/goods/detail',component:()=>import('../views/merchant/goods/goodsDetail')},
       {path: '/merchant/fund',component:()=>import('../views/merchant/fund/fund')},
       {path: '/merchant/fund/data',component:()=>import('../views/merchant/fund/data')},
     ]
-  }
+  },
+  {path: '/user/register',component:()=>import('../views/user/register')},
+  {path: '/findPwd',component:()=>import('../views/admin/findPwd')}
 ]
 
 const router = new Router({
@@ -55,14 +57,14 @@ const router = new Router({
  *          next() 不做任何操作
  *          next('/login') 强制跳转到登录页面
  */
-// router.beforeEach(((to, from, next) => {
-//   if (to.path === '/login') {
-//     return next()
-//   }
-//   if (sessionStorage.getItem('token')) {
-//     return next()
-//   }
-//   next('/login')
-// }))
+router.beforeEach(((to, from, next) => {
+  if (to.path === '/login' || to.path === '/user/register' ) {
+    return next()
+  }
+  if (sessionStorage.getItem('Authorization')) {
+    return next()
+  }
+  next('/login')
+}))
 
 export default router

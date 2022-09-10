@@ -12,20 +12,19 @@
     </div>
     <!-- 卡片视图 -->
     <el-card>
-      <el-row>
-        <el-col>
+      <el-row :gutter="10">
+        <el-col :span="6">
+          <el-input placeholder="输入类别名称" v-model="queryInfo.name" class="input-with-select">
+            <el-button slot="append" icon="el-icon-search" @click="searchShopTypeList"></el-button>
+          </el-input>
+        </el-col>
+        <el-col :span="4">
           <el-button type="primary" icon="el-icon-plus" @click="handleAdd">添加分类</el-button>
         </el-col>
       </el-row>
       <!-- 分类列表区域 -->
       <tree-table :data="cateList" :columns="columns" :selection-type="false" :expand-type="false"
                   show-index index-text="#" border class="tree-table">
-        <!-- 排序 -->
-        <template slot="order" slot-scope="scope">
-          <el-tag v-if="scope.row.level===1">一级</el-tag>
-          <el-tag type="success" v-else-if="scope.row.level===2">二级</el-tag>
-          <el-tag type="warning" v-else>三级</el-tag>
-        </template>
         <!-- 操作 -->
         <template slot="operation" slot-scope="scope">
           <el-button type="primary" icon="el-icon-edit" size="mini" @click="handleEdit(scope.row)">编辑</el-button>
@@ -38,26 +37,32 @@
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
           :current-page="queryInfo.pageNo"
-          :page-sizes="[3,5,10,15]"
+          :page-sizes="[3,5,10,16]"
           :page-size="queryInfo.pageSize"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total">
       </el-pagination>
     </el-card>
     <!-- 添加分类对话框 -->
-    <el-dialog title="添加分类" :visible.sync="dialogFormVisible" width="50%" @close="cascaderClose">
+    <el-dialog title="添加分类" :visible.sync="dialogFormVisible" width="50%" :close-on-click-modal="false" @close="handleClose">
       <el-form :model="form" :rules="rules" ref="form">
-        <el-form-item label="分类名称" prop="cateName">
-          <el-input v-model="form.cateName" placeholder="请输入分类名称"></el-input>
+        <el-form-item label="分类名称" prop="name">
+          <el-input v-model="form.name" placeholder="请输入分类名称"></el-input>
         </el-form-item>
-        <el-form-item label="父级分类" prop="catePid">
-          <!-- 使用级联选择器进行分类展示 -->
-          <el-cascader v-model="selectedKeys" :options="cascaderMenus"
-                       clearable placeholder="请选择父级分类"
-                       :props="cascaderProps"
-                       @change="parentMenuChange"
-                       :disabled="!isAdding">
-          </el-cascader>
+        <el-form-item label="分类图标" prop="icon">
+          <el-upload
+              class="upload-demo"
+              list-type="picture"
+              action=""
+              :headers="headers"
+              :on-remove="handleRemovePic"
+              :before-upload="beforeUpload"
+              :http-request="uploadIcon"
+              :limit="1"
+              :on-exceed="overLimit"
+              :file-list="fileList">
+            <el-button size="small" type="primary">点击上传</el-button>
+          </el-upload>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -73,39 +78,11 @@ export default {
   name: "shopTypeList",
   data() {
     return {
-      cateList: [
-        {
-          id: 1,
-          name: "美食",
-          pid: 0,
-          level: 1,
-          children: [
-            {
-              id: 2,
-              name: "美食",
-              pid: 1,
-              level: 2,
-            },
-            {
-              id: 3,
-              name: "美食",
-              pid: 1,
-              level: 2,
-            },
-            {
-              id: 4,
-              name: "美食",
-              pid: 1,
-              level: 2,
-            },
-
-          ]
-        }
-      ],
+      cateList: [],
       queryInfo: {
+        name: '',
         pageNo: 1,
         pageSize: 5,
-        maxLevel: 1
       },
       //总数据条数
       total: 0,
@@ -114,17 +91,7 @@ export default {
         {
           label: "分类名称",
           prop: "name",
-          width: "200"
-        },
-        {
-          label: "分类级别",
-          prop: "level",
-        },
-        {
-          label: "排序",
-          prop: "cateLevel",
-          type: "template",
-          template: "order"
+          minWidth: 200
         },
         {
           label: "操作",
@@ -135,49 +102,113 @@ export default {
       ],
       //表单数据
       form: {
+        id: '',
         name: "",
-        pid: 1,
-        level: 1,
+        icon:""
       },
       //表单验证规则
       rules: {
         name: [
           {required: true, message: "请输入分类名称", trigger: "blur"}
         ],
-        pid: [
-          {required: true, message: "请选择父级分类", trigger: "blur"}
+        icon: [
+          {required: true, message: "请上传分类图标", trigger: "blur"}
         ]
       },
       //对话框是否显示
       dialogFormVisible: false,
       //当前是否处于添加状态
       isAdding: false,
-      //级联选择器选中的父子节点
-      selectedKeys: [],
-      //级联选择器列表数据
-      cascaderMenus: [],
-      //级联选择器配置
-      cascaderProps: {
-        value: "id", //当前节点值
-        label: "name", //当前节点显示的文本
-        children: "children", //父子节点之间的关系
-        expandTrigger: "hover",  // 何时触发展开
-        checkStrictly: true  // 是否严格检查父子关系,即父菜单是否可以被选中
-      }
+      fileList: [], // 图片上传列表
+      headers:{
+        'Authorization': window.sessionStorage.getItem('token')
+      },
+
     };
   },
   methods: {
+    async handleRemovePic(file, fileList) {
+      console.log(file, fileList);
+      //删除fileList中的图片
+      this.fileList.splice(0, 1);
+      console.log("filelist", fileList);
+      const {data:res} = await this.$http.delete("/file/delete?file="+file.uid)
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.form.icon = "";
+    },
+    beforeUpload(file) {
+      const isJPG = file.type === 'image/jpeg';
+      const isPNG = file.type === 'image/png';
+      const isGIF = file.type === 'image/gif';
+      const isLt2M = file.size / 1024 / 1024 < 2;
+
+      if (!isJPG && !isPNG && !isGIF) {
+        this.$message.error('上传图片只能是 JPG/PNG/GIF 格式!');
+      }
+      if (!isLt2M) {
+        this.$message.error('上传图片大小不能超过 2MB!');
+      }
+      return (isJPG || isPNG || isGIF) && isLt2M;
+    },
+    async uploadIcon(param){
+      const formData = new FormData();
+      formData.append('file', param.file);
+      const {data:res} = await this.$http.post("/file/upload",formData,{
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      if(res.meta.status!=="200") return this.$message.error(res.meta.msg);
+      console.log(res);
+      this.fileList.push({
+        url: res.data.data,
+        uid: res.data.data
+      });
+      this.form.icon = res.data.data
+      this.$notify({
+        title: "",
+        message: "上传成功",
+        type: "success"
+      });
+    },
+    searchShopTypeList() {
+      this.queryInfo.pageNo = 1;
+      this.getCateList();
+    },
+    overLimit(){
+      this.$notify.warning("仅可上传一张图片")
+    },
     // 获取分类列表
     async getCateList() {
+      const {data:res} = await this.$http.post(`/consumer/client/shop-type/list`,this.queryInfo);
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.cateList = res.data.data.records;
+      this.total = res.data.data.total;
+    },
+    handleClose(){
+      this.fileList = []
     },
     // 添加分类
     async handleAdd() {
       this.isAdding = true;
+      this.form = {
+        id: '',
+        name: "",
+        icon:""
+      };
       this.dialogFormVisible = true;
-      //获取分类一二级列表
     },
     // 编辑分类
     handleEdit(row) {
+      this.isAdding = false;
+      this.form = row;
+      if (row.icon){
+        this.fileList.push({
+          url:row.icon,
+          uid:row.icon
+        })
+      }
+      this.dialogFormVisible = true;
     },
     // 删除分类
     handleDelete(row) {
@@ -186,24 +217,34 @@ export default {
         cancelButtonText: "取消",
         type: "warning"
       })
-          .then(async () => {
-          })
-          .catch(() => {
-            this.$message.info("已取消删除");
-          });
-    },
-    // 级联选择器选择事件
-    parentMenuChange() {
-      if (this.selectedKeys.length === 0) {
-        this.form.pid = 1;
-        this.form.level = 1;
-      } else {
-        this.form.pid = this.selectedKeys[this.selectedKeys.length - 1];
-        this.form.level = this.selectedKeys.length + 1;
-      }
+      .then(async () => {
+        const {data:res} = await this.$http.delete(`/consumer/client/shop-type/delete/${row.id}`);
+        if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
+        this.$message.success("删除成功!");
+        await this.getCateList();
+      })
+      .catch(() => {
+        this.$message.info("已取消删除");
+      });
     },
     // 提交表单
     async handleSubmit() {
+      await this.$refs.form.validate(async valid => {
+        if (!valid) return;
+        const url = this.isAdding ? "/consumer/client/shop-type/add" : "/consumer/client/shop-type/edit";
+        const params = Object.assign({}, this.form);
+        if (this.isAdding) {
+          const {data: res} = await this.$http.post(url, params);
+          if (res.meta.status !== "200") return this.$message.error(res.meta.msg);
+          this.$message.success("添加成功");
+        }else{
+          const {data: res} = await this.$http.put(url, params);
+          if (res.meta.status !== "200") return this.$message.error(res.meta.msg);
+          this.$message.success("修改成功");
+        }
+        this.dialogFormVisible = false;
+        await this.getCateList();
+      });
     },
     // 分页改变
     handleCurrentChange(val) {
@@ -215,23 +256,18 @@ export default {
       this.queryInfo.pageSize = val;
       this.getCateList();
     },
-    cascaderClose() {
-      this.selectedKeys = [];
-      //移除form中的cateId，避免作为添加分类表单提交时出现错误
-      delete this.form.id;
-      this.form.name = "";
-      this.form.pid = 1;
-      this.form.level = 1;
-      //清空验证信息
-      this.$refs.form.clearValidate();
-
-    },
   },
+  created() {
+    this.getCateList();
+  }
 }
 </script>
 
 <style scoped>
 .tree-table{
   margin-top: 15px;
+}
+/deep/.el-upload-list__item.is-ready {
+  display: none;
 }
 </style>

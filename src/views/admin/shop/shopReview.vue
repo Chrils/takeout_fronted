@@ -12,8 +12,8 @@
     </div>
     <el-card>
       <el-table :data="shopList" border stripe>
-        <el-table-column label="店铺名称" prop="shopName" width="180"></el-table-column>
-        <el-table-column label="店铺地址" prop="address" width="180" show-overflow-tooltip></el-table-column>
+        <el-table-column label="店铺名称" prop="name" width="180"></el-table-column>
+        <el-table-column label="店铺地址" prop="detailAddress" width="180" show-overflow-tooltip></el-table-column>
         <el-table-column label="申请人姓名" prop="realName" width="100"></el-table-column>
         <el-table-column label="联系电话" prop="phone" width="150"></el-table-column>
         <el-table-column label="店铺类型" prop="shopTypeName" width="100"></el-table-column>
@@ -29,15 +29,14 @@
         </el-table-column>
         <el-table-column label="个人身份验证状态" prop="idCartStat" width="180">
           <template slot-scope="scope">
-            <el-tag type="info"  v-if="scope.row.idCartStat === 0">认证中</el-tag>
-            <el-tag type="success" v-if="scope.row.idCartStat === 1">已通过</el-tag>
-            <el-tag type="danger" v-if="scope.row.idCartStat === 2">与申请人姓名不匹配</el-tag>
-            <el-tag type="danger" v-if="scope.row.idCartStat === 3">未通过</el-tag>
+            <el-tag type="info"  v-if="scope.row.idCardStat === 0">认证中</el-tag>
+            <el-tag type="success" v-else-if="scope.row.idCardStat === 1">已通过</el-tag>
+            <el-tag type="danger" v-else>未通过</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180">
           <template slot-scope="scope">
-            <el-button type="primary" size="mini" :disabled="scope.row.idCartStat === 0" @click="handleReview(scope.row)">审核</el-button>
+            <el-button type="primary" size="mini" :disabled="scope.row.idCardStat !== 1" @click="handleReview(scope.row)">审核</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -45,9 +44,11 @@
       <!-- 分页条 -->
       <el-pagination
           @current-change="handleCurrentChange"
+          @size-change="handleSizeChange"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           :current-page.sync="queryInfo.pageNo"
+          :page-sizes="[5,10,15,20]"
           :page-size="queryInfo.pageSize">
       </el-pagination>
 
@@ -59,7 +60,7 @@
 
     <!-- 审核对话框 -->
     <el-dialog title="审核" :visible.sync="reviewVisible" width="30%">
-      <el-form :model="reviewForm" label-width="80px" :rules="reviewRules" ref="reviewForm">
+      <el-form :model="reviewForm" label-width="80px" :rules="reviewFormRules" ref="reviewForm">
         <el-form-item label="审核结果" prop="reviewStat">
           <el-radio-group v-model="reviewForm.reviewStat">
             <el-radio :label="1">通过</el-radio>
@@ -67,7 +68,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="审核意见" prop="reviewMsg">
-          <el-input type="textarea" v-model="reviewForm.reviewMsg" placeholder="请输入审核意见"></el-input>
+          <el-input :disabled="reviewForm.reviewStat===1" type="textarea" v-model="reviewForm.reviewMsg" placeholder="请输入审核意见"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -84,52 +85,7 @@ export default {
   name: "shopReview",
   data() {
     return {
-      shopList: [
-        {
-          id:1,
-          shopName: "苏宁易购",
-          address: "河北省石家庄市111111111111111111111111111111111111111111111",
-          realName: "张三",
-          phone: "13000000000",
-          shopTypeName: "超市",
-          license: "https://img1.baidu.com/it/u=311462839,333504953&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=666",
-          idCard: "https://img2.baidu.com/it/u=2543475333,980829165&fm=253&fmt=auto&app=138&f=JPEG?w=600&h=450",
-          idCartStat: 0
-        },
-        {
-          id:2,
-          shopName: "苏宁易购",
-          address: "河北省石家庄市",
-          realName: "张三",
-          phone: "13000000000",
-          shopTypeName: "超市",
-          license: "https://img1.baidu.com/it/u=311462839,333504953&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=666",
-          idCard: "https://img2.baidu.com/it/u=2543475333,980829165&fm=253&fmt=auto&app=138&f=JPEG?w=600&h=450",
-          idCartStat: 1
-        },
-        {
-          id:3,
-          shopName: "苏宁易购",
-          address: "河北省石家庄市",
-          realName: "张三",
-          phone: "13000000000",
-          shopTypeName: "超市",
-          license: "https://img1.baidu.com/it/u=311462839,333504953&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=666",
-          idCard: "https://img2.baidu.com/it/u=2543475333,980829165&fm=253&fmt=auto&app=138&f=JPEG?w=600&h=450",
-          idCartStat: 2
-        },
-        {
-          id:4,
-          shopName: "苏宁易购",
-          address: "河北省石家庄市",
-          realName: "张三",
-          phone: "13000000000",
-          shopTypeName: "超市",
-          license: "https://img1.baidu.com/it/u=311462839,333504953&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=666",
-          idCard: "https://img2.baidu.com/it/u=2543475333,980829165&fm=253&fmt=auto&app=138&f=JPEG?w=600&h=450",
-          idCartStat: 3
-        }
-      ],
+      shopList: [],
       queryInfo: {
         pageNo: 1,
         pageSize: 5,
@@ -138,15 +94,16 @@ export default {
       dialogImage: "",
       reviewVisible: false,
       reviewForm: {
+        id: "",
         reviewStat: 1,
         reviewMsg: ""
       },
-      reviewRules: {
-        reviewMsg: [
-          { required: true, message: "请输入审核意见", trigger: "blur" }
-        ]
-      },
       total: 0,
+      reviewFormRules: {
+        reviewStat: [
+          { required: true, message: "请选择审核结果", trigger: "change" }
+        ]
+      }
 
     }
   },
@@ -155,14 +112,18 @@ export default {
       this.reviewForm.id = row.id;
       this.reviewVisible = true;
     },
-    handleReviewSubmit() {
-      this.$refs.reviewForm.validate((valid) => {
+    async handleReviewSubmit() {
+      await this.$refs.reviewForm.validate(async (valid) => {
         if (valid) {
-          this.$message({
-            message: "审核成功",
-            type: "success"
-          });
+          let appendStr = "none";
+          if (this.reviewForm.reviewStat === 2) {
+            appendStr = this.reviewForm.reviewMsg;
+          }
+          const {data:res} = await this.$http.put(`/consumer/admin/shop/review/${this.reviewForm.id}/${this.reviewForm.reviewStat}/${appendStr}`)
+          if (res.meta.status!=="200") return this.$message.error(res.meta.msg);
+          this.$message.success("审核成功");
           this.reviewVisible = false;
+          await this.getApplyShopList();
         } else {
           return false;
         }
@@ -177,9 +138,22 @@ export default {
     },
     handleCurrentChange(val) {
       this.queryInfo.pageNo = val;
-      this.getShopList();
+      this.getApplyShopList();
     },
+    handleSizeChange(val) {
+      this.queryInfo.pageSize = val;
+      this.getApplyShopList();
+    },
+    async getApplyShopList(){
+      const {data:res} = await this.$http.get(`/consumer/admin/shop/apply/list/${this.queryInfo.pageNo}/${this.queryInfo.pageSize}`);
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg);
+      this.shopList = res.data.data.records;
+      this.total = res.data.data.total;
+    }
 
+  },
+  created() {
+    this.getApplyShopList();
   }
 }
 </script>

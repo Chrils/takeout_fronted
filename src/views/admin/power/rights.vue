@@ -39,7 +39,8 @@
             <template v-slot="scope">
               <el-tag type="success" v-if="scope.row.rightLevel === 1">一级</el-tag>
               <el-tag type="info" v-else-if="scope.row.rightLevel === 2">二级</el-tag>
-              <el-tag type="warning" v-else>三级</el-tag>
+              <el-tag type="warning" v-else-if="scope.row.rightLevel === 3">三级</el-tag>
+              <el-tag type="danger" v-else>#</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -59,9 +60,9 @@ export default {
   methods: {
     // 获取权限列表
     async getRightsList(){
-      const {data:res} = await this.$http.get("admin/base/rights");
-      if(res.meta.status !== "OK") return this.$message.error(res.meta.msg)
-      this.rightsList = res.data.rights;
+      const {data:res} = await this.$http.get("consumer/admin/role/roles/rights/all");
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.rightsList = res.data.data;
     },
     // 添加权限
     addRights(){

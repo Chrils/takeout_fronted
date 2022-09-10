@@ -15,47 +15,71 @@
       <el-row :gutter="20">
         <el-col :span="6">
           <div class="data-sum-item">
-            <div class="data-sum-item-title">今日销售额</div>
+            <div class="data-sum-item-title">今日成交订单量</div>
             <div class="data-sum-item-value">{{ orderCount }}</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="data-sum-item">
-            <div class="data-sum-item-title">本周销售额</div>
+            <div class="data-sum-item-title">今日成交金额</div>
             <div class="data-sum-item-value">{{ orderAmount }}</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="data-sum-item">
-            <div class="data-sum-item-title">本月销售额</div>
+            <div class="data-sum-item-title">总成交订单量</div>
             <div class="data-sum-item-value">{{ totalOrderCount }}</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="data-sum-item">
-            <div class="data-sum-item-title">总销售额</div>
+            <div class="data-sum-item-title">总成交金额</div>
             <div class="data-sum-item-value">{{ totalOrderAmount }}</div>
           </div>
         </el-col>
       </el-row>
       <el-row :gutter="40">
-        <el-col :span="8">
+        <el-col :span="20">
+          <div class="blocks" id="blocks1">
+            <el-date-picker
+                v-model="value1"
+                type="year"
+                :editable="false"
+                @change="changeYear1($event)"
+                placeholder="选择要查询数据的年份">
+            </el-date-picker>
+          </div>
           <!-- 柱状图 -->
-          <div class="chart-content" :style="{width: '500px', height: '500px'}"></div>
-        </el-col>
-        <el-col :span="16">
-          <!-- 饼状图 -->
-          <div class="chart-content" :style="{width: '700px', height: '500px'}"></div>
+          <div class="chart-content" :style="{width: '1300px', height: '500px'}"></div>
         </el-col>
       </el-row>
-      <el-row>
-        <el-col :span="12">
+      <el-row :gutter="40">
+        <el-col :span="10">
+          <div class="blocks" id="blocks2">
+            <el-date-picker
+                v-model="value2"
+                type="year"
+                :editable="false"
+                @change="changeYear2($event)"
+                placeholder="选择要查询数据的年份">
+            </el-date-picker>
+          </div>
           <!-- 折线图 -->
-          <div class="chart-content" :style="{width: '600px', height: '300px'}"></div>
+          <div class="chart-content" :style="{width: '600px', height: '500px'}"></div>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="10">
+          <div class="blocks" id="blocks3">
+            <el-date-picker
+                v-model="value3"
+                type="year"
+                :editable="false"
+                @change="changeYear3($event)"
+                placeholder="选择要查询数据的年份">
+            </el-date-picker>
+          </div>
           <!-- 折线图 -->
-          <div class="chart-content" :style="{width: '600px', height: '300px'}"></div>
+          <div class="chart-content" :style="{width: '600px', height: '500px'}"></div>
+
         </el-col>
       </el-row>
     </el-card>
@@ -64,153 +88,241 @@
 
 <script>
 import * as echarts from "echarts";
-const option = {
-  title: {
-    text: '用户来源',
-  },
-  series: [
-    {
-      type: "pie", // type设置为饼图
-      data: [
-        {
-          value: 147,
-          name: "ios"
-        },
-        {
-          value: 395,
-          name: "小程序"
-        },
-        {
-          value: 157,
-          name: "安卓"
-        },
-      ],
-      label: {
-        normal: {
-          show: true,
-          position: "outside",
-          formatter: "{b}:{d}%"
-        }
-      },
-      itemStyle: {
-        emphasis: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: "rgba(0, 0, 0, 0.5)"
-        }
-      }
-    }
-  ]
-};
-
 
 export default {
   name: "data",
-  data(){
-    return{
-      orderCount:999,
-      orderAmount:999,
-      totalOrderCount:999,
-      totalOrderAmount:999,
+  data() {
+    return {
+      orderCount: 0,
+      orderAmount: 0,
+      totalOrderCount: 0,
+      totalOrderAmount: 0,
+      complaintNum:[],
+      orderNum:[],
+      turnoverNum:[],
+      value1:'',
+      value2:'',
+      value3:'',
     }
   },
   mounted() {
-    // 基于准备好的dom，初始化echarts实例
-    const myChart = echarts.init(document.getElementsByClassName('chart-content')[0]);
-    // 绘制图表
-    myChart.setOption({
-      title: {
-        text: '热销商品',
-      },
-      tooltip: {},
-      legend: {
-        data:['销量']
-      },
-      xAxis: {
-        data: ["花雕醉鸡","钵钵鸡","黄焖鸡","手撕鸡","脆皮炸鸡","椒香半鸡"]
-      },
-      yAxis: {},
-      series: [{
-        name: '销量',
-        type: 'bar',
-        data: [666, 777, 1024, 512, 256, 2048]
-      }]
-    });
-    const myChart2 = echarts.init(document.getElementsByClassName('chart-content')[1]);
-    // 绘制图表
-    myChart2.setOption(option);
-    const myChart3 = echarts.init(document.getElementsByClassName('chart-content')[2]);
-    // 绘制图表
-    myChart3.setOption({
-      title: {
-        text: '日销售额趋势',
-      },
-      xAxis: {
-        data: ['8-5', '8-6', '8-7', '8-8', '8-9']
-      },
-      yAxis: {},
-      series: [
-        {
-          data: [10, 22, 28, 23, 19],
-          type: 'line',
-          label: {
-            show: true,
-            position: 'bottom',
-            textStyle: {
-              fontSize: 20
-            }
+    this.getComplaintNum();
+    this.userGetOrderNum();
+    this.userGetTurnover();
+  },
+  created() {
+    this.getTopOne();
+    this.getTopTwo();
+    this.getTopThree();
+    this.getTopFour();
+  },
+  methods: {
+    async getTopOne() {
+      const {data: res} = await this.$http.get("Chart/userGetOrderByDay?shopId="+localStorage.getItem('shopId'));
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.orderCount = res.data.data;
+    },
+    async getTopTwo() {
+      const {data: res} = await this.$http.get("Chart/userGetPriceByDay?shopId="+localStorage.getItem('shopId'));
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.orderAmount = res.data.data;
+    },
+    async getTopThree() {
+      const {data: res} = await this.$http.get("Chart/userGetOrder?shopId="+localStorage.getItem('shopId'));
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.totalOrderCount = res.data.data;
+    },
+    async getTopFour() {
+      const {data: res} = await this.$http.get("Chart/userGetPrice?shopId="+localStorage.getItem('shopId'));
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.totalOrderAmount = res.data.data;
+    },
+
+    async getComplaintNum(){
+      const {data: res} = await this.$http.get("Chart/getComplaintNum?shopId=1");
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.complaintNum = res.data.data;
+
+      // 绘制图表
+      const myChart = echarts.init(document.getElementsByClassName('chart-content')[0]);
+      myChart.setOption({
+        title: {
+          text: '举报数量',
+        },
+        tooltip: {},
+        legend: {
+          data: ['条']
+        },
+        xAxis: {
+          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+        },
+        yAxis: {},
+        series: [{
+          name: '条',
+          type: 'bar',
+          data: this.complaintNum
+        }]
+      });
+    },
+    async changeYear1(val) {
+      var date;
+      date= new Date(this.value1)
+      var dateTime = date.getFullYear();
+
+      const {data: res} =await this.$http.get("Chart/getComplaintByYear?shopId=1&time="+dateTime.toString());
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.complaintNum = res.data.data;
+      console.log(res.data.data);
+      console.log(this.complaintNum);
+      const myChart = echarts.init(document.getElementsByClassName('chart-content')[0]);
+      myChart.setOption({
+        title: {
+          text: '举报数量',
+        },
+        tooltip: {},
+        legend: {
+          data: ['条']
+        },
+        xAxis: {
+          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+        },
+        yAxis: {},
+        series: [{
+          name: '条',
+          type: 'bar',
+          data: this.complaintNum
+        }]
+      });
+    },
+
+    async userGetOrderNum() {
+      const {data: res} = await this.$http.get("Chart/userGetOrderNum?shopId="+localStorage.getItem('shopId'));
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.orderNum = res.data.data;
+      const myChart1 = echarts.init(document.getElementsByClassName('chart-content')[1]);
+      myChart1.setOption({
+        title: {
+          text: '月订单额',
+        },
+        xAxis: {
+          type: 'category',
+          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+        },
+        yAxis: {
+          minInterval:1,
+          type: 'value'
+        },
+        series: [
+          {
+            data: this.orderNum,
+            type: 'line'
           }
-        }
-      ]
-    })
-    const myChart4 = echarts.init(document.getElementsByClassName('chart-content')[3]);
-    // 绘制图表
-    myChart4.setOption({
-      title: {
-        text: '月销售额趋势',
-      },
-      xAxis: {
-        data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-      },
-      yAxis: {},
-      series: [
-        {
-          data: [10, 22, 28, 23, 19, 20, 30, 40, 50, 60, 70, 80],
-          type: 'line',
-          label: {
-            show: true,
-            position: 'bottom',
-            textStyle: {
-              fontSize: 20
-            }
+        ]
+      });
+    },
+    async changeYear2(val) {
+      var date;
+      date= new Date(this.value2)
+      var dateTime = date.getFullYear();
+
+      const {data: res} =await this.$http.get("Chart/userGetOrderByYear?shopId=12&time="+dateTime.toString());
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.orderNum = res.data.data;
+      const myChart1 = echarts.init(document.getElementsByClassName('chart-content')[1]);
+      myChart1.setOption({
+        title: {
+          text: '月订单额',
+        },
+        xAxis: {
+          type: 'category',
+          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+        },
+        yAxis: {
+          minInterval:1,
+          type: 'value'
+        },
+        series: [
+          {
+            data: this.orderNum,
+            type: 'line'
           }
-        }
-      ]
-    })
-    const myChart5 = echarts.init(document.getElementsByClassName('chart-content')[4]);
-    // 绘制图表
-    myChart5.setOption({
-      title: {
-        text: '日销售额趋势',
-      },
-      xAxis: {
-        data: ['8-5', '8-6', '8-7', '8-8', '8-9']
-      },
-      yAxis: {},
-      series: [
-        {
-          data: [10, 22, 28, 23, 19],
-          type: 'line',
-          label: {
-            show: true,
-            position: 'bottom',
-            textStyle: {
-              fontSize: 20
-            }
+        ]
+      });
+    },
+
+    async userGetTurnover(){
+      const {data: res} = await this.$http.get("Chart/userGetTurnoverByMonth?shopId="+localStorage.getItem('shopId'));
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.turnoverNum = res.data.data;
+      const myChart1 = echarts.init(document.getElementsByClassName('chart-content')[2]);
+      myChart1.setOption({
+        title: {
+          text: '月流水量',
+        },
+        xAxis: {
+          type: 'category',
+          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+        },
+        yAxis: {
+          minInterval:1,
+          type: 'value'
+        },
+        series: [
+          {
+            data: this.turnoverNum,
+            type: 'line'
           }
-        }
-      ]
-    })
+        ]
+      });
+    },
+    async changeYear3(val) {
+      var date;
+      date= new Date(this.value3)
+      var dateTime = date.getFullYear();
+      const {data: res} = await this.$http.get("Chart/userGetTurnoverByYear?shopId=12&time="+dateTime.toString());
+      if (res.meta.status !== "200") {
+        return this.$message.error(res.meta.msg)
+      }
+      this.turnoverNum = res.data.data;
+      const myChart1 = echarts.init(document.getElementsByClassName('chart-content')[2]);
+      myChart1.setOption({
+        title: {
+          text: '月流水量',
+        },
+        xAxis: {
+          type: 'category',
+          data: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+        },
+        yAxis: {
+          minInterval:1,
+          type: 'value'
+        },
+        series: [
+          {
+            data: this.turnoverNum,
+            type: 'line'
+          }
+        ]
+      });
+    },
   }
 }
 </script>
@@ -232,5 +344,14 @@ export default {
   }
 
 }
-
+#blocks1{
+  margin-left: 530px;
+  margin-bottom:20px;
+}
+#blocks2{
+  margin-left: 200px;
+}
+#blocks3{
+  margin-left: 200px;
+}
 </style>

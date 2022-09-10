@@ -18,39 +18,40 @@
       <div id="shop-container">
         <div class="shop-pic">
           <!-- 店铺图片 -->
-          <img src="@/assets/img/pre/shop.jpg" alt="">
+          <img :src="shop.img" alt="">
         </div>
         <div class="shop-desc">
           <el-row :gutter="20">
             <el-col :span="6">店铺名称</el-col>
             <el-col :span="14">
-              <h3>毛妈排骨连锅庄</h3>
+              <h3>{{shop.name}}</h3>
             </el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="6">店铺分类</el-col>
-            <el-col :span="14">美食-快餐-汉堡披萨</el-col>
+            <el-col :span="14">{{shop.shopTypeName}}</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="6">店铺地址</el-col>
-            <el-col :span="14">湖南省岳阳市岳阳楼区奇家岭街道</el-col>
+            <el-col :span="14">{{shop.address}}</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="6">店铺负责人</el-col>
-            <el-col :span="14">张三</el-col>
+            <el-col :span="14">{{shop.username}}</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="6">联系电话</el-col>
-            <el-col :span="14">10088208820</el-col>
+            <el-col :span="14">{{shop.phone}}</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="6">营业时间</el-col>
-            <el-col :span="14">11:00-13:00;16:30-18:00</el-col>
+            <el-col :span="14">{{shop.workTime}}</el-col>
           </el-row>
           <el-row :gutter="20">
             <el-col :span="6">营业状态</el-col>
             <el-col :span="14">
-              <el-tag type="success">营业中</el-tag>
+              <el-tag v-if="shop.openStat===1" type="success">营业中</el-tag>
+              <el-tag v-else type="warning">打烊中</el-tag>
             </el-col>
           </el-row>
         </div>
@@ -90,7 +91,7 @@
       <!-- 折叠项 -->
       <el-collapse v-model="activeNames">
         <el-collapse-item title="商家公告" name="1">
-          <p>毛妈排骨连锅庄是一家经营毛妈排骨的餐馆，毛妈排骨是毛妈排骨连锅庄的主营产品。</p>
+          <p>{{shop.notice}}</p>
         </el-collapse-item>
         <el-collapse-item title="商家商品信息" name="2">
           <div>
@@ -242,7 +243,9 @@ export default {
           id: 3,
           name: "聚餐中份"
         }
-      ]
+      ],
+      shopId: this.$route.params.shop_id,
+      shop:{}
     }
   },
   methods: {
@@ -333,7 +336,15 @@ export default {
           message: '已取消下架'
         });
       });
+    },
+    async getShopDetail(){
+      const {data:res} = await this.$http.get(`/consumer/admin/shop/detail/${this.shopId}`);
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg);
+      this.shop = res.data.data;
     }
+  },
+  created() {
+    this.getShopDetail();
   }
 }
 </script>
@@ -345,8 +356,14 @@ export default {
   align-items: center;
   margin-bottom: 20px;
 
+  > .shop-pic{
+    width: 40%;
+    > img{
+      width: 100%;
+    }
+  }
   > .shop-desc {
-    width: 60%;
+    width: 55%;
     margin-left: 20px;
     height: 100%;
     line-height: 40px;

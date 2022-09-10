@@ -17,18 +17,16 @@
           <el-cascader
               v-model="selectedOptions"
               :options="options"
-              placeholder="请选择省市区">
+              placeholder="请选择省市区"
+              @change="handleCascaderChange">
           </el-cascader>
         </el-col>
         <el-col :span="6">
-          <!-- 级联选择框渲染 -->
-          <el-cascader
-              v-model="selectedKeys"
-              :options="cateList"
-              :props="cascaderProps"
-              @change="handleCascaderChange"
-              placeholder="请选择分类">
-          </el-cascader>
+          <el-select v-model="queryInfo.shopType" placeholder="请选择" @change="handleTypeChange">
+            <el-option label="全部" :value="-1"></el-option>
+            <el-option v-for="item in cateList" :label="item.name" :key="item.name" :value="item.id"></el-option>
+          </el-select>
+
         </el-col>
         <el-col :span="6">
           <el-input placeholder="请输入内容" v-model="queryInfo.name" class="input-with-select">
@@ -45,8 +43,8 @@
             label="#">
         </el-table-column>
         <el-table-column
-            prop="shopName"
-            label="商品名称"
+            prop="name"
+            label="店铺名称"
             show-overflow-tooltip>
         </el-table-column>
         <el-table-column
@@ -71,9 +69,9 @@
       <el-pagination
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
-          :current-page="queryInfo.page"
+          :current-page="pageNo"
           :page-sizes="pageSizes"
-          :page-size="queryInfo.size"
+          :page-size="pageSize"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total">
       </el-pagination>
@@ -92,102 +90,17 @@ export default {
     return{
       queryInfo: {
         goodsName: "",
-        cateId: 1,
-        cateLevel: 0,
-        page: 1,
-        size: 10,
-        latitude: "",
-        longitude: ""
+        province: "",
+        city: "",
+        area: "",
+        shopType: -1
       },
+      pageNo: 1,
+      pageSize: 10,
       total: 0,
-      shopList: [
-        {
-          id: 1,
-          shopName: "商品名称",
-          shopTypeName: "店铺分类",
-          address: "店铺地址",
-          shopTypeId: 1,
-          shopTypeLevel: 1,
-          latitude: "",
-          longitude: ""
-        },
-        {
-          id: 2,
-          shopName: "商品名称",
-          shopTypeName: "店铺分类",
-          address: "店铺地址",
-          shopTypeId: 1,
-          shopTypeLevel: 1,
-          latitude: "",
-          longitude: ""
-        },
-        {
-          id: 3,
-          shopName: "商品名称",
-          shopTypeName: "店铺分类",
-          address: "店铺地址",
-          shopTypeId: 1,
-          shopTypeLevel: 1,
-          latitude: "",
-          longitude: ""
-        }
-      ],
-      cateList: [
-        {
-          id:1,
-          name: "美食",
-          children: [
-            {
-              id:2,
-              name: "火锅",
-              children: [
-                {
-                  id:3,
-                  name: "川菜"
-                },
-                {
-                  id:4,
-                  name: "湘菜"
-                }
-              ]
-            },
-            {
-              id:5,
-              name: "烧烤",
-              children: [
-                {
-                  id:6,
-                  name: "烤鸭"
-                },
-                {
-                  id:7,
-                  name: "烤鱼"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          id:8,
-          name: "甜点饮品",
-          children: [
-            {
-              id:9,
-              name: "糖果"
-            },
-            {
-              id:10,
-              name: "冰淇淋"
-            }
-          ]
-        }
-      ],
+      shopList: [],
+      cateList: [],
       selectedKeys: [],
-      cascaderProps: {
-        value: "id",
-        label: "name",
-        children: "children"
-      },
       pageSizes: [5, 10, 15, 20],
       mapVisible: false,
       options: regionData,
@@ -195,32 +108,68 @@ export default {
     }
   },
   methods:{
-    handleDetail(){
-      this.$router.push("/shop/detail")
+    handleDetail(row){
+      this.$router.push("/shop/detail/"+row.id)
     },
-    handleDown(){
-
+    handleDown(row){
+      this.$confirm('确定下线该店铺吗?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.$http.delete(`/consumer/admin/shop/down/${row.id}`).then(res=>{
+          if(res.data.meta.status==="200"){
+            this.$message.success("下线成功")
+            this.searchShopList()
+          }else{
+            this.$message.error(res.data.msg)
+          }
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消下线'
+        });
+      });
     },
     searchShopList(){
-      this.queryInfo.page = 1
+      this.pageNo = 1
       this.getShopList()
     },
     handleSizeChange(val){
-      this.queryInfo.size = val
+      this.pageSize = val
       this.getShopList()
     },
     handleCurrentChange(val){
-      this.queryInfo.page = val
+      this.pageNo = val
       this.getShopList()
     },
-    getShopList(){
-
+    async getShopList(){
+      const {data:res} = await this.$http.post("/consumer/admin/shop/list/"+this.pageNo+"/"+this.pageSize, this.queryInfo);
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.shopList = res.data.data.records;
+      this.total = res.data.data.total;
     },
-    handleCascaderChange(){
-      // this.queryInfo.cateId = this.selectedKeys[this.selectedKeys.length - 1]
-      // this.queryInfo.cateLevel = this.selectedKeys.length
-      // this.getShopList()
-    }
+    handleTypeChange(val){
+      this.queryInfo.shopType = val
+      this.getShopList()
+    },
+    async getCateList(){
+      const {data:res} = await this.$http.get("/consumer/client/shop-type/list/without-page")
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.cateList = res.data.data;
+    },
+    handleCascaderChange(val){
+      this.queryInfo.province = val[0]===undefined? "":CodeToText[val[0]]
+      this.queryInfo.city = val[1]===undefined? "":CodeToText[val[1]]
+      this.queryInfo.area = val[2]===undefined? "":CodeToText[val[2]]
+      this.getShopList()
+    },
+
+  },
+  created(){
+    this.getCateList()
+    this.getShopList()
   }
 }
 </script>

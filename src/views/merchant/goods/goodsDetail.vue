@@ -24,21 +24,21 @@
         <el-row :gutter="20">
           <el-col :span="6">商品名称</el-col>
           <el-col :span="14">
-            <h3>花雕醉鸡2-4人份</h3>
+            <h3>{{goodsData.goodsName}}</h3>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="6">商品分类</el-col>
-          <el-col :span="14">花雕经典</el-col>
+          <el-col :span="14">{{typeName}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="6">商品价格</el-col>
-          <el-col :span="14">128.00</el-col>
+          <el-col :span="14">{{goodsData.goodsPrice}}</el-col>
         </el-row>
-        <el-row :gutter="20">
+<!--        <el-row :gutter="20">
           <el-col :span="6">月售量</el-col>
           <el-col :span="14">666</el-col>
-        </el-row>
+        </el-row> -->
         <el-row :gutter="20">
           <el-col :span="6">好评度</el-col>
           <el-col :span="14">100%</el-col>
@@ -51,22 +51,10 @@
         <div class="goods-params-item-title">
           规格参数
         </div>
-        <div class="goods-params-item-list">
-          <div class="goods-params-item-list-title">甜度</div>
-          <div class="goods-params-item-content">
-            <el-button type="primary" plain size="small">全糖</el-button>
-            <el-button type="primary" plain size="small">半糖</el-button>
-            <el-button type="primary" plain size="small">三分糖</el-button>
-            <el-button type="primary" plain size="small">无糖</el-button>
-          </div>
-        </div>
-        <div class="goods-params-item-list">
-          <div class="goods-params-item-list-title">分量</div>
-          <div class="goods-params-item-content">
-            <el-button type="primary" plain size="small">超大号</el-button>
-            <el-button type="primary" plain size="small">大号</el-button>
-            <el-button type="primary" plain size="small">标号</el-button>
-            <el-button type="primary" plain size="small">小号</el-button>
+        <div class="goods-params-item-list" v-for="(dynamic,index) in dynamicList" :key="index">
+          <div class="goods-params-item-list-title">{{dynamic.normsName}}</div>
+          <div class="goods-params-item-content" v-for="(norms,index2) in dynamic.normsDetail" :key="index2">
+            <el-button type="primary" plain size="small">{{norms}}</el-button>
           </div>
         </div>
       </div>
@@ -74,18 +62,18 @@
         <div class="goods-params-item-title">
           详情信息
         </div>
-        <div class="goods-params-item-list">
-          <div class="goods-params-item-list-title">食材</div>
-          <div class="goods-params-item-content">
-            <el-button type="primary" plain size="small">鸡肉、洋葱、玉米、土豆、花雕酒</el-button>
+        <div class="goods-params-item-list" v-for="(staticNorms,index) in staticList" :key="index">
+          <div class="goods-params-item-list-title">{{staticNorms.normsName}}</div>
+          <div class="goods-params-item-content" v-for="(norms,index2) in staticNorms.normsDetail" :key="index2">
+            <el-button type="primary" plain size="small">{{norms}}</el-button>
           </div>
         </div>
-        <div class="goods-params-item-list">
+       <!-- <div class="goods-params-item-list">
           <div class="goods-params-item-list-title">口味</div>
           <div class="goods-params-item-content">
             <el-button type="primary" plain size="small">湘菜微辣</el-button>
           </div>
-        </div>
+        </div> -->
       </div>
       <div class="goods-params-item">
         <div class="goods-params-item-title">
@@ -317,7 +305,51 @@ export default {
   data(){
     return{
       value: 4.8,
+	  goodsData:{},
+	  dynamicList:[
+		  {
+			  normsName:"",
+			  normsDetail:[]
+		  }
+	  ],
+	  dynamicNormsList:[],
+	  staticList:[],
+	  staticNormsList:[],
+	  typeName:'',
+	  evaluateList:[],
+	  
     }
+  },
+  created(){
+  	this.showGoodsDetail()
+  },
+  methods:{
+  	async showGoodsDetail(){
+		const {data:res}=await this.$http.get("http://localhost:9527/goods/selectGoodsDetail?goodsId=1")
+		if(res.meta.status=="200"){
+			console.log(res.data)
+			//this.goodsDetail=res.data.data
+			this.goodsData=res.data.data
+			
+			for(let i in res.data.dynamicList){
+				this.dynamicList[i]={
+					normsName:res.data.dynamicList[i].normsName,
+					normsDetail:res.data.dynamicList[i].normsDetail.split('|')
+				}
+			}
+			for(let i in res.data.staticList){
+				this.staticList[i]={
+					normsName:res.data.staticList[i].normsName,
+					normsDetail:res.data.staticList[i].normsDetail.split('|')
+				}
+			}
+			this.evaluateList=res.data.evaluateList
+			console.log("evaluteList",res.data.evaluateList)
+			this.typeName=res.data.typeName
+		}else{
+			console.log("失败")
+		}
+	}
   }
 }
 </script>

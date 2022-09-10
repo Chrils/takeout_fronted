@@ -7,7 +7,10 @@
         <img class="logo" src="@/assets/img/logo.png" alt="logo">
         <span>O2O外卖系统</span>
       </div>
-      <el-button type="info" @click="logout">退出</el-button>
+      <div class="top-userinfo-container">
+        <div class="username">{{userName}}</div>
+        <el-button type="info" @click="logout">退出</el-button>
+      </div>
     </el-header>
     <el-container class="home-bottom-container">
       <!-- 左侧菜单区域 -->
@@ -18,17 +21,17 @@
         <el-menu :default-active="activePath" class="el-menu-vertical-demo" unique-opened :collapse="isCollapsed" router
                  :collapse-transition = "false" background-color="#333744" text-color="#fff" active-text-color="#ffd04b">
           <!-- 一级菜单 -->
-          <el-submenu v-for="item in menuList" :index="item.url" :key="item.id">
+          <el-submenu v-for="(item,index) in menuList" :index="item.rightUrl" :key="'1-'+index">
             <!-- 一级菜单的模板区域 -->
             <template slot="title">
               <!-- 图标 -->
               <i :class="item.icon"></i>
-              <span>{{ item.name }}</span>
+              <span>{{ item.rightName }}</span>
             </template>
             <!-- 二级菜单 -->
-            <el-menu-item v-for="subItem in item.children" :index="subItem.url" :key="subItem.id" @click="saveNavState(subItem.url)">
+            <el-menu-item v-for="(subItem,index2) in item.children" :index="subItem.rightUrl" :key="'1-'+index+'-'+index2" @click="saveNavState(subItem.url)">
               <i :class="subItem.icon"></i>
-              <span>{{ subItem.name }}</span>
+              <span>{{ subItem.rightName }}</span>
             </el-menu-item>
           </el-submenu>
         </el-menu>
@@ -57,13 +60,14 @@ export default {
       this.$store.commit('setUserType', null);
       this.$store.commit('setCartInfo',null);
       this.$store.commit('setUserInfo',null);
-      this.$router.push('/mall/index');
+      this.$router.push('/login');
     },
     // 获取菜单列表
     async getMenuList(){
-      const {data:res} = await this.$http.get('/admin/base/menus')
-      if (res.meta.status !== "OK") return this.$message.error(res.meta.msg)
-      this.menuList = res.data.menus.menuItems
+      let role = JSON.parse(localStorage.getItem('user')).roleId
+      const {data:res} = await this.$http.get('consumer/admin/role/roles/'+role+'/self')
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.menuList = res.data.data.rightTreeList
     },
     // 切换折叠
     toggleCollapse(){
@@ -83,6 +87,11 @@ export default {
       activePath: ''
     };
   },
+  computed:{
+    userName(){
+      return JSON.parse(localStorage.getItem('user')).userName
+    }
+  }
 }
 </script>
 
@@ -113,6 +122,13 @@ export default {
     }
     > span{
       font-size: 20px;
+    }
+  }
+  > .top-userinfo-container{
+    display: flex;
+    align-items: center;
+    > .username{
+      padding-right: 20px;
     }
   }
 }

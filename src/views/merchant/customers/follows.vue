@@ -11,58 +11,13 @@
 
   <el-card>
     <div class="follow-container">
-      <div class="follow-item">
-        <div class="follow-item-avatar" @click="toChat">
+      <div class="follow-item" v-for="item in followList" :key="item.id">
+        <div class="follow-item-avatar" @click="toChat(item.id)">
           <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="">
         </div>
         <div class="follow-item-info">
-          <div class="follow-item-username">张三</div>
-          <div class="follow-item-phone">13000000000</div>
-        </div>
-      </div>
-      <div class="follow-item">
-        <div class="follow-item-avatar">
-          <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="">
-        </div>
-        <div class="follow-item-info">
-          <div class="follow-item-username">张三</div>
-          <div class="follow-item-phone">13000000000</div>
-        </div>
-      </div>
-      <div class="follow-item">
-        <div class="follow-item-avatar">
-          <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="">
-        </div>
-        <div class="follow-item-info">
-          <div class="follow-item-username">张三</div>
-          <div class="follow-item-phone">13000000000</div>
-        </div>
-      </div>
-      <div class="follow-item">
-        <div class="follow-item-avatar">
-          <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="">
-        </div>
-        <div class="follow-item-info">
-          <div class="follow-item-username">张三</div>
-          <div class="follow-item-phone">13000000000</div>
-        </div>
-      </div>
-      <div class="follow-item">
-        <div class="follow-item-avatar">
-          <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="">
-        </div>
-        <div class="follow-item-info">
-          <div class="follow-item-username">张三</div>
-          <div class="follow-item-phone">13000000000</div>
-        </div>
-      </div>
-      <div class="follow-item">
-        <div class="follow-item-avatar">
-          <img src="https://img.yzcdn.cn/vant/cat.jpeg" alt="">
-        </div>
-        <div class="follow-item-info">
-          <div class="follow-item-username">张三</div>
-          <div class="follow-item-phone">13000000000</div>
+          <div class="follow-item-username">{{item.username}}</div>
+          <div class="follow-item-phone">{{item.phone===null?'未绑定手机号':item.phone}}</div>
         </div>
       </div>
     </div>
@@ -75,14 +30,23 @@
 export default {
   name: "follows",
   data(){
-    return{
-
+    return {
+      followList:[]
     }
   },
   methods: {
-    toChat(){
-      this.$router.push("/merchant/customers/chat");
+    toChat(id){
+      this.$router.push("/merchant/customers/chat/"+id);
+    },
+    async getFollowList(){
+      const {data:res} = await this.$http.get("consumer/user/shop-follow/shop-follows/"+localStorage.getItem("shopId"))
+      if (res.meta.status !== '200') return this.$message.error(res.meta.msg)
+      this.followList = res.data.users
     }
+
+  },
+  created() {
+    this.getFollowList();
   }
 }
 </script>

@@ -164,6 +164,8 @@ export default {
   methods:{
     //添加角色
     addRole(){
+      this.addRoleForm.roleName = '';
+      this.addRoleForm.roleDesc = '';
       this.addRoleDialogVisible = true;
     },
     editRole(index, row){
@@ -179,23 +181,24 @@ export default {
         type: 'warning'
       }).catch(err => err)
       if(will !== 'confirm') return;
-      const {data:res} = await this.$http.delete(`/admin/role/roles/${row.roleId}`);
-      if(res.meta.status !== "OK") return this.$message.error(res.meta.msg);
+      const {data:res} = await this.$http.delete(`/consumer/admin/role/roles/${row.roleId}`);
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg);
       this.$message.success('删除成功');
       await this.getRoles();
     },
     //删除角色下的权限
     async removeRightById(role, rightId){
-      const will = await this.$confirm('此操作将永久删除该权限, 是否继续?', '提示', {
+      const will = await this.$confirm('此操作将移除角色下该权限, 是否继续?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).catch(err => err)
       if (will==="confirm") {
-        const {data:res} = await this.$http.delete(`/admin/role/roles/${role.roleId}/rights/${rightId}`)
-        if (res.meta.status === "OK") {
+        const {data:res} = await this.$http.delete(`/consumer/admin/role/roles/${role.roleId}/rights/${rightId}`)
+        if (res.meta.status === "200") {
           this.$message.success('删除成功')
-          role.rightTreeList = res.data.list.rightTreeList
+          role.rightTreeList = res.data.data.rightTreeList
+          await this.$http.get("consumer/admin/role/role/right/refresh")
         }else{
           this.$message.error('删除失败')
         }
@@ -205,16 +208,16 @@ export default {
     },
     //获取角色列表
     async getRoles(){
-      const {data:res} = await this.$http.get('/admin/role/roles')
-      if(res.meta.status !== "OK") return this.$message.error(res.meta.msg)
-      this.roles = res.data.list
+      const {data:res} = await this.$http.get('/consumer/admin/role/roles')
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.roles = res.data.data
     },
     //打开分配权限对话框并请求数据
     assignRole(role){
       // const {data:res} = this.$http.get(`/admin/role/roles`);
       // if (res.meta.status !== "OK") return this.$message.error(res.meta.msg)
       this.roleId = role.roleId
-      this.rightTree = this.roles[0].rightTreeList
+      this.rightTree = this.roles[3].rightTreeList
       this.rightIds = []
       this.addRightIds(role.rightTreeList)
       /**
@@ -255,23 +258,24 @@ export default {
       ]
       if (checkedKeys.length === 0) return this.$message.warning('请保留至少一项权限')
       console.log( checkedKeys.join(','))
-      const {data:res} = await this.$http.post(`/admin/role/roles/${this.roleId}/rights/${checkedKeys.join(',')}`)
-      if (res.meta.status !== "OK") return this.$message.error(res.meta.msg)
+      const {data:res} = await this.$http.post(`/consumer/admin/role/roles/${this.roleId}/rights/${checkedKeys.join(',')}`)
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
       this.$message.success('分配权限成功')
       await this.getRoles()
       this.assignRoleDialogVisible = false
+      await this.$http.get("consumer/admin/role/role/right/refresh")
     },
     async addRoleConfirm(){
       this.addRoleDialogVisible = false
-      const {data:res} = await this.$http.post('/admin/role/roles', this.addRoleForm)
-      if (res.meta.status !== "OK") return this.$message.error(res.meta.msg)
+      const {data:res} = await this.$http.post('/consumer/admin/role/roles', this.addRoleForm)
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
       this.$message.success('添加角色成功')
       await this.getRoles()
     },
     async editRoleConfirm(){
       this.editRoleDialogVisible = false
-      const {data:res} = await this.$http.put(`/admin/role/roles`, this.editRoleForm)
-      if (res.meta.status !== "OK") return this.$message.error(res.meta.msg)
+      const {data:res} = await this.$http.put(`/consumer/admin/role/roles`, this.editRoleForm)
+      if (res.meta.status !== "200") return this.$message.error(res.meta.msg)
       this.$message.success('修改角色成功')
       await this.getRoles()
     },

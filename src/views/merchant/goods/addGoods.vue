@@ -16,23 +16,24 @@
 
     <el-card>
       <el-form ref="form" :model="form" :rules="rules" label-width="110px" size="small">
-        <el-form-item label="商品名称">
+        <el-form-item label="商品名称" prop="goodsName">
           <el-input v-model="form.goodsName" placeholder="请输入商品名称"></el-input>
         </el-form-item>
-        <el-form-item label="商品类型">
+        <el-form-item label="商品类型" prop="goodsTypeId">
           <el-select v-model="form.goodsTypeId" placeholder="请选择商品类型">
-            <el-option v-for="item in goodsType" :key="item.value" :label="item.label" :value="item.value">
+            <el-option v-for="item in goodsTypeList" :key="item.goodsTypeId" :label="item.goodsTypeName"
+                       :value="item.goodsTypeId">
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="商品价格">
+        <el-form-item label="商品价格" prop="goodsPrice">
           <el-input v-model="form.goodsPrice" placeholder="请输入商品价格" style="width: 206px"></el-input>
         </el-form-item>
         <el-form-item label="打包费用">
-          <el-input v-model="form.goodsPackageFee" placeholder="请输入打包费用" style="width: 206px"></el-input>
+          <el-input v-model="form.goodsBagPrice" placeholder="请输入打包费用" style="width: 206px"></el-input>
         </el-form-item>
         <el-form-item label="商品规格参数">
-          <el-radio-group v-model="goodsDynamicParam">
+          <el-radio-group v-model="goodsDynamicParam" @change="setDynamicNull">
             <el-radio :label="1">默认（无）</el-radio>
             <el-radio :label="0">添加规格参数</el-radio>
           </el-radio-group>
@@ -73,7 +74,7 @@
           </el-table>
         </el-form-item>
         <el-form-item label="商品详情属性">
-          <el-radio-group v-model="goodsStaticParam">
+          <el-radio-group v-model="goodsStaticParam" @change="setStaticNull">
             <el-radio :label="1">默认（无）</el-radio>
             <el-radio :label="0">添加详情属性</el-radio>
           </el-radio-group>
@@ -112,6 +113,8 @@
               :on-success="handleSuccess"
               :on-error="handleError"
               :http-request="upload"
+              :limit="1"
+              :on-exceed="overLimit"
               :file-list="fileList">
             <i class="el-icon-plus"></i>
           </el-upload>
@@ -127,7 +130,8 @@
           <el-input type="textarea" v-model="form.goodsDesc" placeholder="请输入商品描述"></el-input>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitForm('form')">提交</el-button>
+          <el-button v-if="goodsId!=''&&goodsId!=-1" type="primary" @click="submitFormUpd('form')">提交</el-button>
+          <el-button v-else type="primary" @click="submitForm('form')">提交</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -143,9 +147,9 @@ export default {
         goodsName: '',
         goodsTypeId: '',
         goodsPrice: '',
-        goodsImgs: [], // 商品图片
+        goodsPic: [], // 商品图片
         goodsDesc: '',
-        goodsPackageFee: 0,
+        goodsBagPrice: "0",
         dynamicParamList: [
           {
             paramName: '',
@@ -161,27 +165,19 @@ export default {
       },
       goodsDynamicParam: 1, // 商品动态参数
       goodsStaticParam: 1, // 商品静态属性
-      goodsType: [
-        {
-          value: '1',
-          label: '类型一'
-        },
-        {
-          value: '2',
-          label: '类型二'
-        }
-      ],
+      goodsTypeList: [],
       rules: {
         goodsName: [
           {required: true, message: '请输入商品名称', trigger: 'blur'}
         ],
         goodsTypeId: [
-          {required: true, message: '请选择商品类型', trigger: 'blur'}
+          {required: true, message: '请选择商品类型'}
         ],
         goodsPrice: [
-          {required: true, message: '请输入商品价格', trigger: 'blur'}
+          {required: true, message: '请输入商品价格', trigger: 'blur'},
+          {pattern: /^[0-9]+\.{0,1}[0-9]{0,2}$/, message: '价格只能是正整数或者小数', trigger: 'blur'},
         ],
-        goodsImg: [
+        goodsPic: [
           {required: true, message: '请上传商品图片', trigger: 'blur'}
         ],
         goodsDesc: [
@@ -195,25 +191,96 @@ export default {
         'Authorization': window.sessionStorage.getItem('token')
       },
       fileList: [], // 商品图片列表
+      goodsId: ''
 
     }
   },
+  created() {
+    this.showCategory()
+    this.showGoodsUpd()
+  },
   methods: {
+    async showCategory() {
+      const {data: res} = await this.$http.get("/goods/selectGoodsTypeByShopId?shopId="+localStorage.getItem('shopId'))
+      this.goodsTypeList = res.data.data
+    },
+    setDynamicNull() {
+      this.form.dynamicParamList = [
+        {
+          paramName: '',
+          paramValue: []
+        }
+      ]
+    },
+    setStaticNull() {
+      this.form.staticParamList = [
+        {
+          paramName: '',
+          paramValue: []
+        }
+      ]
+    },
+    async showGoodsUpd() {
+      this.goodsId = this.$route.params.goodsId;
+      if (this.$route.params.goodsId != -1) {
+        const {data: res} = await this.$http.get('/goods/showGoodsUpd?goodsId=' + this.$route.params.goodsId)
+        console.log("ssss==>", res.data.data)
+        this.form = res.data.data
+        this.goodsDynamicParam = 0
+        this.goodsStaticParam = 0
+        if (res.data.data.dynamicParamList.length == 0) {
+          this.goodsDynamicParam = 1
+        }
+        if (res.data.data.staticParamList.length == 0) {
+          this.goodsStaticParam = 1
+        }
+      }
+    },
+
     handleSuccess(res, file, fileList) {
     },
     submitForm(formName) {
-      this.$refs[formName].validate((valid) => {
+      this.$refs[formName].validate(async (valid) => {
         if (valid) {
+          console.log(this.form)
+          let formJson = JSON.stringify(this.form)
+          const {data: res} = await this.$http.post(`/goods/addGoods?shopId=${localStorage.getItem('shopId')}`, formJson, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
           this.$message({
             message: '提交成功',
             type: 'success'
           });
+          this.$router.push("/merchant/goods/list")
         } else {
           console.log('error submit!!');
           return false;
         }
       });
     },
+    submitFormUpd(formName) {
+      this.$refs[formName].validate(async (valid) => {
+        if (valid) {
+          let formJson = JSON.stringify(this.form)
+          const {data: res} = await this.$http.post("/goods/updGoods?goodsId=" + this.goodsId, formJson, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          this.$message({
+            message: '提交成功',
+            type: 'success'
+          });
+          this.$router.push("/merchant/goods/list")
+        } else {
+          console.log('error submit!!');
+          return false;
+        }
+      });
+    },
+
     beforeUpload(file) {
       const isJPG = file.type === 'image/jpeg';
       const isLt2M = file.size / 1024 / 1024 < 2;
@@ -230,35 +297,33 @@ export default {
       this.dialogImageUrl = file.url;
       this.dialogImageVisible = true;
     },
-    handleRemove(file, fileList) {
+    async handleRemove(file, fileList) {
       console.log(file, fileList);
-      console.log(this.form.goodsImgs);
-      //1.获取当前点击的图片的path路径
-      const path = file.path
-      //2.从goodsImgs中找到图片的索引值
-      const index = this.form.goodsImgs.findIndex(item => item.path === path);
-      //3.删除goodsImgs中的图片
-      this.form.goodsImgs.splice(index, 1);
-      //4.删除fileList中的图片
-      this.fileList.splice(index, 1);
+      //删除fileList中的图片
+      this.fileList.splice(0, 1);
       console.log("filelist", fileList);
-      console.log("imgs", this.form.goodsImgs);
+      const {data:res} = await this.$http.delete("/file/delete?file="+file.uid)
+      if(res.meta.status !== "200") return this.$message.error(res.meta.msg)
+      this.form.goodsPic = "";
     },
-    async upload(param) {
+    overLimit(){
+      this.$notify.warning("仅可上传一张图片")
+    },
+    async upload(param){
       const formData = new FormData();
       formData.append('file', param.file);
-      const {data: res} = await this.$http.post("/admin/goods/upload", formData, {
+      const {data:res} = await this.$http.post("/file/upload",formData,{
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
-      if (res.meta.status !== "OK") return this.$message.error(res.meta.msg);
+      if(res.meta.status!=="200") return this.$message.error(res.meta.msg);
       console.log(res);
       this.fileList.push({
-        url: res.data.url,
-        uid: res.data.path
+        url: res.data.data,
+        uid: res.data.data
       });
-      this.form.goodsImgs.push(res.data.path);
+      this.form.goodsPic = [res.data.data]
       this.$notify({
         title: "",
         message: "上传成功",
@@ -311,6 +376,7 @@ export default {
       })
     },
     handleDynamicAdd() {
+      console.log(this.form.dynamicParamList)
       this.form.dynamicParamList.push({
         paramName: '',
         paramValue: []
@@ -319,7 +385,7 @@ export default {
     handleStaticRemove(index) {
       if (this.form.staticParamList.length > 1) {
         this.form.staticParamList.splice(index, 1);
-      }else{
+      } else {
         this.form.staticParamList = [{
           paramName: '',
           paramValue: []
@@ -329,7 +395,7 @@ export default {
     handleDynamicRemove(index) {
       if (this.form.dynamicParamList.length > 1) {
         this.form.dynamicParamList.splice(index, 1);
-      }else{
+      } else {
         this.form.dynamicParamList = [{
           paramName: '',
           paramValue: []
